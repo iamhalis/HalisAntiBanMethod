@@ -1,0 +1,157 @@
+--// Services
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--// Settings
+local PLACE_ID = game.PlaceId
+local hopDelay = 1800
+local autoHop = true
+local timeLeft = hopDelay
+local scriptRunning = true
+local MAX_PLAYERS_ALLOWED = 6 -- <7 người
+
+--// UI chính
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "AutoHopUI"
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 220, 0, 200)
+Frame.Position = UDim2.new(0, 20, 0.5, -100)
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,30)
+Title.BackgroundTransparency = 1
+Title.Text = "AUTO HOP (<7 PLAYERS)"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+
+local ToggleBtn = Instance.new("TextButton", Frame)
+ToggleBtn.Size = UDim2.new(0.8,0,0,32)
+ToggleBtn.Position = UDim2.new(0.1,0,0.23,0)
+ToggleBtn.Text = "ON"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0,170,0)
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+
+local TimeBox = Instance.new("TextBox", Frame)
+TimeBox.Size = UDim2.new(0.8,0,0,28)
+TimeBox.Position = UDim2.new(0.1,0,0.48,0)
+TimeBox.Text = "1800"
+TimeBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+TimeBox.TextColor3 = Color3.new(1,1,1)
+TimeBox.Font = Enum.Font.Gotham
+TimeBox.TextSize = 14
+
+local StopBtn = Instance.new("TextButton", Frame)
+StopBtn.Size = UDim2.new(0.8,0,0,30)
+StopBtn.Position = UDim2.new(0.1,0,0.82,0)
+StopBtn.Text = "STOP SCRIPT"
+StopBtn.BackgroundColor3 = Color3.fromRGB(120,0,0)
+StopBtn.TextColor3 = Color3.new(1,1,1)
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.TextSize = 14
+
+--// ⭐ COUNTDOWN TOP CENTER (NEW)
+local TopCountdown = Instance.new("TextLabel", ScreenGui)
+TopCountdown.AnchorPoint = Vector2.new(0.5, 0)
+TopCountdown.Position = UDim2.new(0.5, 0, 0, 10)
+TopCountdown.Size = UDim2.new(0, 260, 0, 40)
+TopCountdown.BackgroundColor3 = Color3.fromRGB(0,0,0)
+TopCountdown.BackgroundTransparency = 0.35
+TopCountdown.TextColor3 = Color3.fromRGB(0,255,0)
+TopCountdown.Font = Enum.Font.GothamBold
+TopCountdown.TextSize = 22
+TopCountdown.Text = "Next hop: "..timeLeft.."s"
+TopCountdown.Visible = true
+TopCountdown.BorderSizePixel = 0
+
+local corner = Instance.new("UICorner", TopCountdown)
+corner.CornerRadius = UDim.new(0,8)
+
+--// Server hop
+local function ServerHop()
+    local success, result = pcall(function()
+        local req = game:HttpGet(
+            "https://games.roblox.com/v1/games/"..PLACE_ID.."/servers/Public?sortOrder=Asc&limit=100"
+        )
+        return HttpService:JSONDecode(req)
+    end)
+    if not success or not result then return end
+
+    local bestServer, lowestPlayers = nil, math.huge
+
+    for _, v in pairs(result.data) do
+        if v.id ~= game.JobId
+        and v.playing < v.maxPlayers
+        and v.playing <= MAX_PLAYERS_ALLOWED then
+            if v.playing < lowestPlayers then
+                lowestPlayers = v.playing
+                bestServer = v.id
+            end
+        end
+    end
+
+    if bestServer then
+        TeleportService:TeleportToPlaceInstance(PLACE_ID, bestServer, LocalPlayer)
+    end
+end
+
+--// Toggle
+ToggleBtn.MouseButton1Click:Connect(function()
+    if not scriptRunning then return end
+    autoHop = not autoHop
+
+    if autoHop then
+        ToggleBtn.Text = "ON"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        timeLeft = hopDelay
+        TopCountdown.Visible = true
+    else
+        ToggleBtn.Text = "OFF"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(170,0,0)
+        TopCountdown.Visible = false
+    end
+end)
+
+--// Time update
+TimeBox.FocusLost:Connect(function()
+    local num = tonumber(TimeBox.Text)
+    if num and num > 0 then
+        hopDelay = num
+        timeLeft = hopDelay
+    else
+        TimeBox.Text = tostring(hopDelay)
+    end
+end)
+
+--// Stop
+StopBtn.MouseButton1Click:Connect(function()
+    scriptRunning = false
+    autoHop = false
+    ScreenGui:Destroy()
+end)
+
+--// Loop
+task.spawn(function()
+    while scriptRunning do
+        task.wait(1)
+
+        if autoHop then
+            timeLeft -= 1
+            TopCountdown.Text = "Next hop: "..timeLeft.."s"
+
+            if timeLeft <= 0 then
+                timeLeft = hopDelay
+                ServerHop()
+            end
+        end
+    end
+end)
