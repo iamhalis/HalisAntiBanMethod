@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// Settings
 local PLACE_ID = game.PlaceId
-local hopDelay = 1800
+local hopDelay = 3600
 local autoHop = true
 local timeLeft = hopDelay
 local scriptRunning = true
