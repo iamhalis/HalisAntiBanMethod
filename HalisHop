@@ -172,8 +172,15 @@ end
 
 -- ===== STOP BUTTON =====
 stopBtn.MouseButton1Click:Connect(function()
-    AUTO_ENABLED = false
-    status.Text = "🔴 OFF"
+    AUTO_ENABLED = not AUTO_ENABLED
+
+    if AUTO_ENABLED then
+        status.Text = "🟢 ON"
+        stopBtn.Text = "STOP"
+    else
+        status.Text = "🔴 OFF"
+        stopBtn.Text = "START"
+    end
 end)
 
 -- ===== AUTO LOOP =====
