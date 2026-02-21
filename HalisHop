@@ -35,7 +35,6 @@ task.spawn(function()
 
     Instance.new("UICorner", label).CornerRadius = UDim.new(0, 10)
 
-    -- Wait 3s
     task.wait(3)
 
     for i = 0,1,0.1 do
@@ -46,6 +45,7 @@ task.spawn(function()
 
     creditGui:Destroy()
 end)
+
 -- ===== UI MINI (TRANSPARENT) =====
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "HalisMiniHop"
@@ -60,15 +60,14 @@ frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,255,255)
 stroke.Transparency = 0.6
 stroke.Thickness = 1
 
--- ===== MINIMIZE BUTTON (CLEAN) =====
+-- ===== MINIMIZE =====
 local minimized = false
 
 local miniBtn = Instance.new("TextButton", frame)
@@ -99,24 +98,15 @@ stopBtn.TextColor3 = Color3.new(1,1,1)
 stopBtn.BackgroundTransparency = 0.15
 Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
 
--- minimize toggle
 miniBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-
-    if minimized then
-        status.Visible = false
-        stopBtn.Visible = false
-        frame.Size = UDim2.new(0,120,0,26)
-        miniBtn.Text = "+"
-    else
-        status.Visible = true
-        stopBtn.Visible = true
-        frame.Size = UDim2.new(0,120,0,70)
-        miniBtn.Text = "—"
-    end
+    status.Visible = not minimized
+    stopBtn.Visible = not minimized
+    frame.Size = minimized and UDim2.new(0,120,0,26) or UDim2.new(0,120,0,70)
+    miniBtn.Text = minimized and "+" or "—"
 end)
 
--- ===== COUNTDOWN TOP (GLASS) =====
+-- ===== COUNTDOWN TOP =====
 local topGui = Instance.new("ScreenGui", game.CoreGui)
 topGui.Name = "HalisCountdown"
 topGui.ResetOnSpawn = false
@@ -128,7 +118,6 @@ countFrame.Size = UDim2.new(0,260,0,36)
 countFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 countFrame.BackgroundTransparency = 0.35
 countFrame.BorderSizePixel = 0
-
 Instance.new("UICorner", countFrame).CornerRadius = UDim.new(0,10)
 
 local stroke2 = Instance.new("UIStroke", countFrame)
@@ -143,20 +132,23 @@ countdown.Font = Enum.Font.GothamBold
 countdown.TextScaled = true
 countdown.TextColor3 = Color3.fromRGB(255,255,255)
 countdown.TextStrokeTransparency = 0
-countdown.Text = "Next hop in: "..HOP_INTERVAL.."s"
 
--- ===== SERVER FINDER =====
+-- ===== SERVER FINDER (ANTI FULL) =====
 local function getServer()
     local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
     local body = HttpService:JSONDecode(game:HttpGet(url))
 
-    local bestServer = nil
-    local lowest = math.huge
+    local bestServer, lowest = nil, math.huge
 
     for _,v in pairs(body.data) do
-        if v.playing < TARGET_PLAYERS and v.playing < lowest and not visitedServers[v.id] then
-            lowest = v.playing
-            bestServer = v
+        if v.playing < TARGET_PLAYERS
+        and v.playing < v.maxPlayers
+        and not visitedServers[v.id] then
+
+            if v.playing < lowest then
+                lowest = v.playing
+                bestServer = v
+            end
         end
     end
 
@@ -166,35 +158,34 @@ local function getServer()
     end
 end
 
--- ===== HOP FUNCTION =====
+-- ===== HOP FUNCTION (ANTI 279 PRO) =====
 local function hopServer()
     if hopping or not AUTO_ENABLED then return end
     hopping = true
 
-    local MAX_RETRY = 3
+    local MAX_RETRY = 5
 
     while AUTO_ENABLED do
         local serverId = getServer()
 
         if serverId then
-            local success = false
-
             for i = 1, MAX_RETRY do
                 if not AUTO_ENABLED then break end
 
-                success = pcall(function()
+                local success = pcall(function()
                     TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
                 end)
 
                 if success then
-                    task.wait(5)
+                    task.wait(6)
                     break
                 else
-                    task.wait(2)
+                    visitedServers[serverId] = true
+                    task.wait(3)
                 end
             end
         else
-            task.wait(2)
+            task.wait(4)
         end
 
         task.wait(1)
@@ -203,17 +194,11 @@ local function hopServer()
     hopping = false
 end
 
--- ===== STOP BUTTON =====
+-- ===== STOP / START =====
 stopBtn.MouseButton1Click:Connect(function()
     AUTO_ENABLED = not AUTO_ENABLED
-
-    if AUTO_ENABLED then
-        status.Text = "🟢 ON"
-        stopBtn.Text = "STOP"
-    else
-        status.Text = "🔴 OFF"
-        stopBtn.Text = "START"
-    end
+    status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
+    stopBtn.Text = AUTO_ENABLED and "STOP" or "START"
 end)
 
 -- ===== AUTO LOOP =====
@@ -221,8 +206,6 @@ task.spawn(function()
     local timer = HOP_INTERVAL
 
     while true do
-        status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
-
         if AUTO_ENABLED then
             countdown.Text = "Next hop in: "..timer.."s"
             timer -= 1
