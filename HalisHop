@@ -54,15 +54,30 @@ stopBtn.TextColor3 = Color3.new(1,1,1)
 stopBtn.BackgroundTransparency = 0.15
 Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
 
--- ===== COUNTDOWN TOP =====
+-- ===== COUNTDOWN TOP (GLASS) =====
 local topGui = Instance.new("ScreenGui", game.CoreGui)
 topGui.Name = "HalisCountdown"
 topGui.ResetOnSpawn = false
 
-local countdown = Instance.new("TextLabel", topGui)
-countdown.AnchorPoint = Vector2.new(0.5,0)
-countdown.Position = UDim2.new(0.5,0,0,10)
-countdown.Size = UDim2.new(0,320,0,42)
+-- nền mờ phía sau
+local countFrame = Instance.new("Frame", topGui)
+countFrame.AnchorPoint = Vector2.new(0.5,0)
+countFrame.Position = UDim2.new(0.5,0,0,8)
+countFrame.Size = UDim2.new(0,260,0,36)
+countFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+countFrame.BackgroundTransparency = 0.35
+countFrame.BorderSizePixel = 0
+
+Instance.new("UICorner", countFrame).CornerRadius = UDim.new(0,10)
+
+local stroke2 = Instance.new("UIStroke", countFrame)
+stroke2.Color = Color3.fromRGB(255,255,255)
+stroke2.Transparency = 0.7
+stroke2.Thickness = 1
+
+-- text countdown
+local countdown = Instance.new("TextLabel", countFrame)
+countdown.Size = UDim2.new(1,0,1,0)
 countdown.BackgroundTransparency = 1
 countdown.Font = Enum.Font.GothamBold
 countdown.TextScaled = true
