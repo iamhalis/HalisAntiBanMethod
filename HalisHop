@@ -1,140 +1,156 @@
-do
-    if getgenv and getgenv().__HLS_V4 then return end
-    if getgenv then getgenv().__HLS_V4 = true end
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+local PlaceId = game.PlaceId
 
-    local _S=game.GetService
-    local _P=_S(game,"Players")
-    local _T=_S(game,"TeleportService")
-    local _H=_S(game,"HttpService")
-    local _L=_P.LocalPlayer
-    local _ID=game.PlaceId
+-- SETTINGS
+local TARGET_PLAYERS = 7
+local HOP_INTERVAL = 2700
+local AUTO_ENABLED = true
 
-    local _TP=7
-    local _HI=2700
-    local _EN=true
+-- anti repeat
+local visitedServers = {}
+local hopping = false
 
-    local _VS={}
-    local _HP=false
+-- ===== UI MINI (TRANSPARENT) =====
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "HalisMiniHop"
+gui.ResetOnSpawn = false
 
-    --// mini ui
-    local _G=Instance.new("ScreenGui",game.CoreGui)
-    _G.Name="HalisMiniHop"
-    _G.ResetOnSpawn=false
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 120, 0, 70)
+frame.Position = UDim2.new(0, 10, 0.5, -35)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.35
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
-    local _F=Instance.new("Frame",_G)
-    _F.Size=UDim2.new(0,120,0,70)
-    _F.Position=UDim2.new(0,10,0.5,-35)
-    _F.BackgroundColor3=Color3.fromRGB(20,20,20)
-    _F.BackgroundTransparency=0.35
-    _F.BorderSizePixel=0
-    _F.Active=true
-    _F.Draggable=true
-    Instance.new("UICorner",_F).CornerRadius=UDim.new(0,12)
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
 
-    local _ST=Instance.new("TextLabel",_F)
-    _ST.Size=UDim2.new(1,0,0.5,0)
-    _ST.BackgroundTransparency=1
-    _ST.Font=Enum.Font.GothamBold
-    _ST.TextScaled=true
-    _ST.TextColor3=Color3.fromRGB(0,255,120)
-    _ST.Text="🟢 ON"
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color = Color3.fromRGB(255,255,255)
+stroke.Transparency = 0.6
+stroke.Thickness = 1
 
-    local _BTN=Instance.new("TextButton",_F)
-    _BTN.Size=UDim2.new(1,-10,0.35,0)
-    _BTN.Position=UDim2.new(0,5,0.6,0)
-    _BTN.Text="STOP"
-    _BTN.Font=Enum.Font.GothamBold
-    _BTN.TextScaled=true
-    _BTN.BackgroundColor3=Color3.fromRGB(170,40,40)
-    _BTN.TextColor3=Color3.new(1,1,1)
-    _BTN.BackgroundTransparency=0.15
-    Instance.new("UICorner",_BTN).CornerRadius=UDim.new(0,8)
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.new(1,0,0.5,0)
+status.BackgroundTransparency = 1
+status.Font = Enum.Font.GothamBold
+status.TextScaled = true
+status.TextColor3 = Color3.fromRGB(0,255,120)
+status.Text = "🟢 ON"
 
-    --// countdown
-    local _TG=Instance.new("ScreenGui",game.CoreGui)
-    _TG.Name="HalisCountdown"
-    _TG.ResetOnSpawn=false
+local stopBtn = Instance.new("TextButton", frame)
+stopBtn.Size = UDim2.new(1, -10, 0.35, 0)
+stopBtn.Position = UDim2.new(0,5,0.6,0)
+stopBtn.Text = "STOP"
+stopBtn.Font = Enum.Font.GothamBold
+stopBtn.TextScaled = true
+stopBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
+stopBtn.TextColor3 = Color3.new(1,1,1)
+stopBtn.BackgroundTransparency = 0.15
+Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
 
-    local _CF=Instance.new("Frame",_TG)
-    _CF.AnchorPoint=Vector2.new(0.5,0)
-    _CF.Position=UDim2.new(0.5,0,0,8)
-    _CF.Size=UDim2.new(0,260,0,36)
-    _CF.BackgroundColor3=Color3.fromRGB(20,20,20)
-    _CF.BackgroundTransparency=0.35
-    _CF.BorderSizePixel=0
-    Instance.new("UICorner",_CF).CornerRadius=UDim.new(0,10)
+-- ===== COUNTDOWN TOP (GLASS) =====
+local topGui = Instance.new("ScreenGui", game.CoreGui)
+topGui.Name = "HalisCountdown"
+topGui.ResetOnSpawn = false
 
-    local _CD=Instance.new("TextLabel",_CF)
-    _CD.Size=UDim2.new(1,0,1,0)
-    _CD.BackgroundTransparency=1
-    _CD.Font=Enum.Font.GothamBold
-    _CD.TextScaled=true
-    _CD.TextColor3=Color3.fromRGB(255,255,255)
-    _CD.TextStrokeTransparency=0
-    _CD.Text="Next hop in: ".._HI.."s"
+-- nền mờ phía sau
+local countFrame = Instance.new("Frame", topGui)
+countFrame.AnchorPoint = Vector2.new(0.5,0)
+countFrame.Position = UDim2.new(0.5,0,0,8)
+countFrame.Size = UDim2.new(0,260,0,36)
+countFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+countFrame.BackgroundTransparency = 0.35
+countFrame.BorderSizePixel = 0
 
-    --// server finder
-    local function _GS()
-        local _URL="https://games.roblox.com/v1/games/".._ID.."/servers/Public?sortOrder=Asc&limit=100"
-        local _BD=_H:JSONDecode(game:HttpGet(_URL))
-        local _BEST=nil
-        local _LOW=math.huge
+Instance.new("UICorner", countFrame).CornerRadius = UDim.new(0,10)
 
-        for _,v in pairs(_BD.data) do
-            if v.playing<_TP and v.playing<_LOW and not _VS[v.id] then
-                _LOW=v.playing
-                _BEST=v
-            end
-        end
+local stroke2 = Instance.new("UIStroke", countFrame)
+stroke2.Color = Color3.fromRGB(255,255,255)
+stroke2.Transparency = 0.7
+stroke2.Thickness = 1
 
-        if _BEST then
-            _VS[_BEST.id]=true
-            return _BEST.id
+-- text countdown
+local countdown = Instance.new("TextLabel", countFrame)
+countdown.Size = UDim2.new(1,0,1,0)
+countdown.BackgroundTransparency = 1
+countdown.Font = Enum.Font.GothamBold
+countdown.TextScaled = true
+countdown.TextColor3 = Color3.fromRGB(255,255,255)
+countdown.TextStrokeTransparency = 0
+countdown.Text = "Next hop in: "..HOP_INTERVAL.."s"
+
+-- ===== SERVER FINDER =====
+local function getServer()
+    local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local body = HttpService:JSONDecode(game:HttpGet(url))
+
+    local bestServer = nil
+    local lowest = math.huge
+
+    for _,v in pairs(body.data) do
+        if v.playing < TARGET_PLAYERS and v.playing < lowest and not visitedServers[v.id] then
+            lowest = v.playing
+            bestServer = v
         end
     end
 
-    local function _HOP()
-        if _HP or not _EN then return end
-        _HP=true
-
-        while _EN do
-            local _SID=_GS()
-            if _SID then
-                pcall(function()
-                    _T:TeleportToPlaceInstance(_ID,_SID,_L)
-                end)
-                task.wait(3)
-            else
-                task.wait(2)
-            end
-        end
-
-        _HP=false
+    if bestServer then
+        visitedServers[bestServer.id] = true
+        return bestServer.id
     end
-
-    _BTN.MouseButton1Click:Connect(function()
-        _EN=false
-        _ST.Text="🔴 OFF"
-    end)
-
-    task.spawn(function()
-        local _TM=_HI
-        while true do
-            _ST.Text=_EN and "🟢 ON" or "🔴 OFF"
-
-            if _EN then
-                _CD.Text="Next hop in: ".._TM.."s"
-                _TM=_TM-1
-
-                if _TM<=0 then
-                    _HOP()
-                    _TM=_HI
-                end
-            else
-                _CD.Text="Auto hop paused"
-            end
-
-            task.wait(1)
-        end
-    end)
 end
+
+-- ===== HOP FUNCTION =====
+local function hopServer()
+    if hopping or not AUTO_ENABLED then return end
+    hopping = true
+
+    while AUTO_ENABLED do
+        local serverId = getServer()
+        if serverId then
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+            end)
+            task.wait(3)
+        else
+            task.wait(2)
+        end
+    end
+
+    hopping = false
+end
+
+-- ===== STOP BUTTON =====
+stopBtn.MouseButton1Click:Connect(function()
+    AUTO_ENABLED = false
+    status.Text = "🔴 OFF"
+end)
+
+-- ===== AUTO LOOP (ONLY TIMER) =====
+task.spawn(function()
+    local timer = HOP_INTERVAL
+
+    while true do
+        status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
+
+        if AUTO_ENABLED then
+            countdown.Text = "Next hop in: "..timer.."s"
+            timer -= 1
+
+            if timer <= 0 then
+                hopServer()
+                timer = HOP_INTERVAL
+            end
+        else
+            countdown.Text = "Auto hop paused"
+        end
+
+        task.wait(1)
+    end
+end)
