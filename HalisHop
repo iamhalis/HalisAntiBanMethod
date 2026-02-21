@@ -1,139 +1,139 @@
 do
-    if getgenv and getgenv().__HLS_LOADED then return end
-    if getgenv then getgenv().__HLS_LOADED = true end
+    if getgenv and getgenv().__HLS_V4 then return end
+    if getgenv then getgenv().__HLS_V4 = true end
 
-    local function _d(s)
-        return (s:gsub(".", function(c)
-            return string.char(c:byte() ~ 3)
-        end))
-    end
+    local _S=game.GetService
+    local _P=_S(game,"Players")
+    local _T=_S(game,"TeleportService")
+    local _H=_S(game,"HttpService")
+    local _L=_P.LocalPlayer
+    local _ID=game.PlaceId
 
-    local _a=game:GetService(_d("Sobyfqp")) -- Players
-    local _b=game:GetService(_d("WfobmlqgqPfswj`f")) -- TeleportService
-    local _c=game:GetService(_d("KwwsPfswj`f")) -- HttpService
-    local _d1=_a.LocalPlayer
-    local _e=game.PlaceId
+    local _TP=7
+    local _HI=2700
+    local _EN=true
 
-    local _f=7
-    local _g=2700
-    local _h=true
+    local _VS={}
+    local _HP=false
 
-    local _i={}
-    local _j=false
+    --// mini ui
+    local _G=Instance.new("ScreenGui",game.CoreGui)
+    _G.Name="HalisMiniHop"
+    _G.ResetOnSpawn=false
 
-    -- UI
-    local _k=Instance.new(_d("P`qffmHvj"),game.CoreGui)
-    _k.Name=_d("KbojvJmjklKls")
-    _k.ResetOnSpawn=false
+    local _F=Instance.new("Frame",_G)
+    _F.Size=UDim2.new(0,120,0,70)
+    _F.Position=UDim2.new(0,10,0.5,-35)
+    _F.BackgroundColor3=Color3.fromRGB(20,20,20)
+    _F.BackgroundTransparency=0.35
+    _F.BorderSizePixel=0
+    _F.Active=true
+    _F.Draggable=true
+    Instance.new("UICorner",_F).CornerRadius=UDim.new(0,12)
 
-    local _l=Instance.new(_d("Eqbof"),_k)
-    _l.Size=UDim2.new(0,120,0,70)
-    _l.Position=UDim2.new(0,10,0.5,-35)
-    _l.BackgroundColor3=Color3.fromRGB(20,20,20)
-    _l.BackgroundTransparency=0.35
-    _l.BorderSizePixel=0
-    _l.Active=true
-    _l.Draggable=true
-    Instance.new(_d("VJ@psofs"),_l).CornerRadius=UDim.new(0,12)
+    local _ST=Instance.new("TextLabel",_F)
+    _ST.Size=UDim2.new(1,0,0.5,0)
+    _ST.BackgroundTransparency=1
+    _ST.Font=Enum.Font.GothamBold
+    _ST.TextScaled=true
+    _ST.TextColor3=Color3.fromRGB(0,255,120)
+    _ST.Text="🟢 ON"
 
-    local _m=Instance.new(_d("WfyvMbcfm"),_l)
-    _m.Size=UDim2.new(1,0,0.5,0)
-    _m.BackgroundTransparency=1
-    _m.Font=Enum.Font.GothamBold
-    _m.TextScaled=true
-    _m.TextColor3=Color3.fromRGB(0,255,120)
-    _m.Text="🟢 ON"
+    local _BTN=Instance.new("TextButton",_F)
+    _BTN.Size=UDim2.new(1,-10,0.35,0)
+    _BTN.Position=UDim2.new(0,5,0.6,0)
+    _BTN.Text="STOP"
+    _BTN.Font=Enum.Font.GothamBold
+    _BTN.TextScaled=true
+    _BTN.BackgroundColor3=Color3.fromRGB(170,40,40)
+    _BTN.TextColor3=Color3.new(1,1,1)
+    _BTN.BackgroundTransparency=0.15
+    Instance.new("UICorner",_BTN).CornerRadius=UDim.new(0,8)
 
-    local _n=Instance.new(_d("WfyvAvuupo"),_l)
-    _n.Size=UDim2.new(1,-10,0.35,0)
-    _n.Position=UDim2.new(0,5,0.6,0)
-    _n.Text="STOP"
-    _n.Font=Enum.Font.GothamBold
-    _n.TextScaled=true
-    _n.BackgroundColor3=Color3.fromRGB(170,40,40)
-    _n.TextColor3=Color3.new(1,1,1)
-    _n.BackgroundTransparency=0.15
-    Instance.new(_d("VJ@psofs"),_n).CornerRadius=UDim.new(0,8)
+    --// countdown
+    local _TG=Instance.new("ScreenGui",game.CoreGui)
+    _TG.Name="HalisCountdown"
+    _TG.ResetOnSpawn=false
 
-    -- countdown UI
-    local _o=Instance.new(_d("P`qffmHvj"),game.CoreGui)
-    _o.Name=_d("Kbojv@lvouepxo")
-    _o.ResetOnSpawn=false
+    local _CF=Instance.new("Frame",_TG)
+    _CF.AnchorPoint=Vector2.new(0.5,0)
+    _CF.Position=UDim2.new(0.5,0,0,8)
+    _CF.Size=UDim2.new(0,260,0,36)
+    _CF.BackgroundColor3=Color3.fromRGB(20,20,20)
+    _CF.BackgroundTransparency=0.35
+    _CF.BorderSizePixel=0
+    Instance.new("UICorner",_CF).CornerRadius=UDim.new(0,10)
 
-    local _p=Instance.new(_d("Eqbof"),_o)
-    _p.AnchorPoint=Vector2.new(0.5,0)
-    _p.Position=UDim2.new(0.5,0,0,8)
-    _p.Size=UDim2.new(0,260,0,36)
-    _p.BackgroundColor3=Color3.fromRGB(20,20,20)
-    _p.BackgroundTransparency=0.35
-    _p.BorderSizePixel=0
-    Instance.new(_d("VJ@psofs"),_p).CornerRadius=UDim.new(0,10)
+    local _CD=Instance.new("TextLabel",_CF)
+    _CD.Size=UDim2.new(1,0,1,0)
+    _CD.BackgroundTransparency=1
+    _CD.Font=Enum.Font.GothamBold
+    _CD.TextScaled=true
+    _CD.TextColor3=Color3.fromRGB(255,255,255)
+    _CD.TextStrokeTransparency=0
+    _CD.Text="Next hop in: ".._HI.."s"
 
-    local _q=Instance.new(_d("WfyvMbcfm"),_p)
-    _q.Size=UDim2.new(1,0,1,0)
-    _q.BackgroundTransparency=1
-    _q.Font=Enum.Font.GothamBold
-    _q.TextScaled=true
-    _q.TextColor3=Color3.fromRGB(255,255,255)
-    _q.TextStrokeTransparency=0
-    _q.Text="Next hop in: ".._g.."s"
+    --// server finder
+    local function _GS()
+        local _URL="https://games.roblox.com/v1/games/".._ID.."/servers/Public?sortOrder=Asc&limit=100"
+        local _BD=_H:JSONDecode(game:HttpGet(_URL))
+        local _BEST=nil
+        local _LOW=math.huge
 
-    -- server finder
-    local function _r()
-        local _s="https://games.roblox.com/v1/games/".._e.."/servers/Public?sortOrder=Asc&limit=100"
-        local _t=_c:JSONDecode(game:HttpGet(_s))
-        local _u=nil
-        local _v=math.huge
-
-        for _,x in pairs(_t.data) do
-            if x.playing<_f and x.playing<_v and not _i[x.id] then
-                _v=x.playing
-                _u=x
+        for _,v in pairs(_BD.data) do
+            if v.playing<_TP and v.playing<_LOW and not _VS[v.id] then
+                _LOW=v.playing
+                _BEST=v
             end
         end
 
-        if _u then
-            _i[_u.id]=true
-            return _u.id
+        if _BEST then
+            _VS[_BEST.id]=true
+            return _BEST.id
         end
     end
 
-    local function _w()
-        if _j or not _h then return end
-        _j=true
-        while _h do
-            local _x=_r()
-            if _x then
+    local function _HOP()
+        if _HP or not _EN then return end
+        _HP=true
+
+        while _EN do
+            local _SID=_GS()
+            if _SID then
                 pcall(function()
-                    _b:TeleportToPlaceInstance(_e,_x,_d1)
+                    _T:TeleportToPlaceInstance(_ID,_SID,_L)
                 end)
                 task.wait(3)
             else
                 task.wait(2)
             end
         end
-        _j=false
+
+        _HP=false
     end
 
-    _n.MouseButton1Click:Connect(function()
-        _h=false
-        _m.Text="🔴 OFF"
+    _BTN.MouseButton1Click:Connect(function()
+        _EN=false
+        _ST.Text="🔴 OFF"
     end)
 
     task.spawn(function()
-        local _y=_g
+        local _TM=_HI
         while true do
-            _m.Text=_h and "🟢 ON" or "🔴 OFF"
-            if _h then
-                _q.Text="Next hop in: ".._y.."s"
-                _y-=_1 or 1
-                if _y<=0 then
-                    _w()
-                    _y=_g
+            _ST.Text=_EN and "🟢 ON" or "🔴 OFF"
+
+            if _EN then
+                _CD.Text="Next hop in: ".._TM.."s"
+                _TM=_TM-1
+
+                if _TM<=0 then
+                    _HOP()
+                    _TM=_HI
                 end
             else
-                _q.Text="Auto hop paused"
+                _CD.Text="Auto hop paused"
             end
+
             task.wait(1)
         end
     end)
