@@ -35,6 +35,18 @@ stroke.Color = Color3.fromRGB(255,255,255)
 stroke.Transparency = 0.6
 stroke.Thickness = 1
 
+-- ===== MINIMIZE BUTTON (CLEAN) =====
+local minimized = false
+
+local miniBtn = Instance.new("TextButton", frame)
+miniBtn.Size = UDim2.new(0,18,0,18)
+miniBtn.Position = UDim2.new(1,-22,0,4)
+miniBtn.Text = "—"
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextScaled = true
+miniBtn.BackgroundTransparency = 1
+miniBtn.TextColor3 = Color3.fromRGB(220,220,220)
+
 local status = Instance.new("TextLabel", frame)
 status.Size = UDim2.new(1,0,0.5,0)
 status.BackgroundTransparency = 1
@@ -54,12 +66,28 @@ stopBtn.TextColor3 = Color3.new(1,1,1)
 stopBtn.BackgroundTransparency = 0.15
 Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
 
+-- minimize toggle
+miniBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+
+    if minimized then
+        status.Visible = false
+        stopBtn.Visible = false
+        frame.Size = UDim2.new(0,120,0,26)
+        miniBtn.Text = "+"
+    else
+        status.Visible = true
+        stopBtn.Visible = true
+        frame.Size = UDim2.new(0,120,0,70)
+        miniBtn.Text = "—"
+    end
+end)
+
 -- ===== COUNTDOWN TOP (GLASS) =====
 local topGui = Instance.new("ScreenGui", game.CoreGui)
 topGui.Name = "HalisCountdown"
 topGui.ResetOnSpawn = false
 
--- nền mờ phía sau
 local countFrame = Instance.new("Frame", topGui)
 countFrame.AnchorPoint = Vector2.new(0.5,0)
 countFrame.Position = UDim2.new(0.5,0,0,8)
@@ -75,7 +103,6 @@ stroke2.Color = Color3.fromRGB(255,255,255)
 stroke2.Transparency = 0.7
 stroke2.Thickness = 1
 
--- text countdown
 local countdown = Instance.new("TextLabel", countFrame)
 countdown.Size = UDim2.new(1,0,1,0)
 countdown.BackgroundTransparency = 1
@@ -111,16 +138,33 @@ local function hopServer()
     if hopping or not AUTO_ENABLED then return end
     hopping = true
 
+    local MAX_RETRY = 3
+
     while AUTO_ENABLED do
         local serverId = getServer()
+
         if serverId then
-            pcall(function()
-                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-            end)
-            task.wait(3)
+            local success = false
+
+            for i = 1, MAX_RETRY do
+                if not AUTO_ENABLED then break end
+
+                success = pcall(function()
+                    TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+                end)
+
+                if success then
+                    task.wait(5)
+                    break
+                else
+                    task.wait(2)
+                end
+            end
         else
             task.wait(2)
         end
+
+        task.wait(1)
     end
 
     hopping = false
@@ -132,7 +176,7 @@ stopBtn.MouseButton1Click:Connect(function()
     status.Text = "🔴 OFF"
 end)
 
--- ===== AUTO LOOP (ONLY TIMER) =====
+-- ===== AUTO LOOP =====
 task.spawn(function()
     local timer = HOP_INTERVAL
 
