@@ -1,70 +1,151 @@
---// SETTINGS
-local HOP_INTERVAL = 2700 -- 45 phút
-local PLACE_ID = game.PlaceId
-
---// services
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlaceId = game.PlaceId
 
---// cache server đã vào
+-- SETTINGS
+local TARGET_PLAYERS = 7
+local HOP_INTERVAL = 2700
+local AUTO_ENABLED = true
+
+-- anti repeat
 local visitedServers = {}
+local hopping = false
 
---// tìm server hợp lệ
+-- ===== UI MINI (TRANSPARENT) =====
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "HalisMiniHop"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 120, 0, 70)
+frame.Position = UDim2.new(0, 10, 0.5, -35)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.35 -- 🔥 glass effect
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+-- bo góc
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
+
+-- viền mờ
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color = Color3.fromRGB(255,255,255)
+stroke.Transparency = 0.6
+stroke.Thickness = 1
+
+-- status text
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.new(1,0,0.5,0)
+status.BackgroundTransparency = 1
+status.Font = Enum.Font.GothamBold
+status.TextScaled = true
+status.TextColor3 = Color3.fromRGB(0,255,120)
+status.Text = "🟢 ON"
+
+-- stop button
+local stopBtn = Instance.new("TextButton", frame)
+stopBtn.Size = UDim2.new(1, -10, 0.35, 0)
+stopBtn.Position = UDim2.new(0,5,0.6,0)
+stopBtn.Text = "STOP"
+stopBtn.Font = Enum.Font.GothamBold
+stopBtn.TextScaled = true
+stopBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
+stopBtn.TextColor3 = Color3.new(1,1,1)
+stopBtn.BackgroundTransparency = 0.15
+Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
+
+-- ===== COUNTDOWN TOP =====
+local topGui = Instance.new("ScreenGui", game.CoreGui)
+topGui.Name = "HalisCountdown"
+topGui.ResetOnSpawn = false
+
+local countdown = Instance.new("TextLabel", topGui)
+countdown.AnchorPoint = Vector2.new(0.5,0)
+countdown.Position = UDim2.new(0.5,0,0,10)
+countdown.Size = UDim2.new(0,320,0,42)
+countdown.BackgroundTransparency = 1
+countdown.Font = Enum.Font.GothamBold
+countdown.TextScaled = true
+countdown.TextColor3 = Color3.fromRGB(255,255,255)
+countdown.TextStrokeTransparency = 0
+countdown.Text = "Next hop in: "..HOP_INTERVAL.."s"
+
+-- ===== SERVER FINDER =====
 local function getServer()
-    local cursor = ""
-    
-    while true do
-        local url = "https://games.roblox.com/v1/games/"..PLACE_ID.."/servers/Public?sortOrder=Asc&limit=100"
-        if cursor ~= "" then
-            url = url .. "&cursor=" .. cursor
+    local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local body = HttpService:JSONDecode(game:HttpGet(url))
+
+    local bestServer = nil
+    local lowest = math.huge
+
+    for _,v in pairs(body.data) do
+        if v.playing < TARGET_PLAYERS and v.playing < lowest and not visitedServers[v.id] then
+            lowest = v.playing
+            bestServer = v
         end
+    end
 
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(game:HttpGet(url))
-        end)
+    if bestServer then
+        visitedServers[bestServer.id] = true
+        return bestServer.id
+    end
+end
 
-        if success and result and result.data then
-            for _, server in ipairs(result.data) do
-                if server.playing < server.maxPlayers and not visitedServers[server.id] then
-                    visitedServers[server.id] = true
-                    return server.id
-                end
+-- ===== HOP FUNCTION (smart retry) =====
+local function hopServer()
+    if hopping then return end
+    hopping = true
+
+    while AUTO_ENABLED do
+        local serverId = getServer()
+        if serverId then
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+            end)
+            task.wait(3)
+        else
+            task.wait(2) -- retry tìm server khác
+        end
+    end
+
+    hopping = false
+end
+
+-- ===== STOP BUTTON =====
+stopBtn.MouseButton1Click:Connect(function()
+    AUTO_ENABLED = false
+    status.Text = "🔴 OFF"
+end)
+
+-- ===== AUTO LOOP =====
+task.spawn(function()
+    local timer = HOP_INTERVAL
+
+    while true do
+        status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
+
+        if AUTO_ENABLED then
+            countdown.Text = "Next hop in: "..timer.."s"
+            timer -= 1
+
+            if timer <= 0 then
+                hopServer()
+                timer = HOP_INTERVAL
             end
-            cursor = result.nextPageCursor
-            if not cursor then
-                break
+
+            -- 🔥 dynamic hop nếu server đông lên
+            if #Players:GetPlayers() >= TARGET_PLAYERS then
+                hopServer()
             end
         else
-            task.wait(2)
+            countdown.Text = "Auto hop paused"
         end
-    end
-    
-    return nil
-end
 
---// hop an toàn (retry nếu fail)
-local function hopServer()
-    while true do
-        local serverId = getServer()
-        
-        if serverId then
-            local ok = pcall(function()
-                TeleportService:TeleportToPlaceInstance(PLACE_ID, serverId, Players.LocalPlayer)
-            end)
-            
-            if ok then
-                break
-            end
-        end
-        
-        task.wait(3) -- thử lại nếu fail
-    end
-end
-
---// loop hop
-task.spawn(function()
-    while task.wait(HOP_INTERVAL) do
-        hopServer()
+        task.wait(1)
     end
 end)
