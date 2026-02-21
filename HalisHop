@@ -13,6 +13,39 @@ local AUTO_ENABLED = true
 local visitedServers = {}
 local hopping = false
 
+-- ===== Show notification (3s) =====
+task.spawn(function()
+    local creditGui = Instance.new("ScreenGui")
+    creditGui.Name = "HalisCredit"
+    creditGui.ResetOnSpawn = false
+    creditGui.Parent = game.CoreGui
+
+    local label = Instance.new("TextLabel")
+    label.Parent = creditGui
+    label.AnchorPoint = Vector2.new(0.5, 0)
+    label.Position = UDim2.new(0.5, 0, 0, 60)
+    label.Size = UDim2.new(0, 260, 0, 40)
+    label.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    label.BackgroundTransparency = 0.25
+    label.BorderSizePixel = 0
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Text = "Script by @iamhalis"
+
+    Instance.new("UICorner", label).CornerRadius = UDim.new(0, 10)
+
+    -- Wait 3s
+    task.wait(3)
+
+    for i = 0,1,0.1 do
+        label.TextTransparency = i
+        label.BackgroundTransparency = 0.25 + (i * 0.75)
+        task.wait(0.03)
+    end
+
+    creditGui:Destroy()
+end)
 -- ===== UI MINI (TRANSPARENT) =====
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "HalisMiniHop"
