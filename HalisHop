@@ -1,156 +1,140 @@
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
+do
+    if getgenv and getgenv().__HLS_LOADED then return end
+    if getgenv then getgenv().__HLS_LOADED = true end
 
--- SETTINGS
-local TARGET_PLAYERS = 7
-local HOP_INTERVAL = 2700
-local AUTO_ENABLED = true
-
--- anti repeat
-local visitedServers = {}
-local hopping = false
-
--- ===== UI MINI (TRANSPARENT) =====
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "HalisMiniHop"
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 120, 0, 70)
-frame.Position = UDim2.new(0, 10, 0.5, -35)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BackgroundTransparency = 0.35
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255,255,255)
-stroke.Transparency = 0.6
-stroke.Thickness = 1
-
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,0,0.5,0)
-status.BackgroundTransparency = 1
-status.Font = Enum.Font.GothamBold
-status.TextScaled = true
-status.TextColor3 = Color3.fromRGB(0,255,120)
-status.Text = "🟢 ON"
-
-local stopBtn = Instance.new("TextButton", frame)
-stopBtn.Size = UDim2.new(1, -10, 0.35, 0)
-stopBtn.Position = UDim2.new(0,5,0.6,0)
-stopBtn.Text = "STOP"
-stopBtn.Font = Enum.Font.GothamBold
-stopBtn.TextScaled = true
-stopBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
-stopBtn.TextColor3 = Color3.new(1,1,1)
-stopBtn.BackgroundTransparency = 0.15
-Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
-
--- ===== COUNTDOWN TOP (GLASS) =====
-local topGui = Instance.new("ScreenGui", game.CoreGui)
-topGui.Name = "HalisCountdown"
-topGui.ResetOnSpawn = false
-
--- nền mờ phía sau
-local countFrame = Instance.new("Frame", topGui)
-countFrame.AnchorPoint = Vector2.new(0.5,0)
-countFrame.Position = UDim2.new(0.5,0,0,8)
-countFrame.Size = UDim2.new(0,260,0,36)
-countFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-countFrame.BackgroundTransparency = 0.35
-countFrame.BorderSizePixel = 0
-
-Instance.new("UICorner", countFrame).CornerRadius = UDim.new(0,10)
-
-local stroke2 = Instance.new("UIStroke", countFrame)
-stroke2.Color = Color3.fromRGB(255,255,255)
-stroke2.Transparency = 0.7
-stroke2.Thickness = 1
-
--- text countdown
-local countdown = Instance.new("TextLabel", countFrame)
-countdown.Size = UDim2.new(1,0,1,0)
-countdown.BackgroundTransparency = 1
-countdown.Font = Enum.Font.GothamBold
-countdown.TextScaled = true
-countdown.TextColor3 = Color3.fromRGB(255,255,255)
-countdown.TextStrokeTransparency = 0
-countdown.Text = "Next hop in: "..HOP_INTERVAL.."s"
-
--- ===== SERVER FINDER =====
-local function getServer()
-    local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
-    local body = HttpService:JSONDecode(game:HttpGet(url))
-
-    local bestServer = nil
-    local lowest = math.huge
-
-    for _,v in pairs(body.data) do
-        if v.playing < TARGET_PLAYERS and v.playing < lowest and not visitedServers[v.id] then
-            lowest = v.playing
-            bestServer = v
-        end
+    local function _d(s)
+        return (s:gsub(".", function(c)
+            return string.char(c:byte() ~ 3)
+        end))
     end
 
-    if bestServer then
-        visitedServers[bestServer.id] = true
-        return bestServer.id
-    end
-end
+    local _a=game:GetService(_d("Sobyfqp")) -- Players
+    local _b=game:GetService(_d("WfobmlqgqPfswj`f")) -- TeleportService
+    local _c=game:GetService(_d("KwwsPfswj`f")) -- HttpService
+    local _d1=_a.LocalPlayer
+    local _e=game.PlaceId
 
--- ===== HOP FUNCTION =====
-local function hopServer()
-    if hopping or not AUTO_ENABLED then return end
-    hopping = true
+    local _f=7
+    local _g=2700
+    local _h=true
 
-    while AUTO_ENABLED do
-        local serverId = getServer()
-        if serverId then
-            pcall(function()
-                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-            end)
-            task.wait(3)
-        else
-            task.wait(2)
-        end
-    end
+    local _i={}
+    local _j=false
 
-    hopping = false
-end
+    -- UI
+    local _k=Instance.new(_d("P`qffmHvj"),game.CoreGui)
+    _k.Name=_d("KbojvJmjklKls")
+    _k.ResetOnSpawn=false
 
--- ===== STOP BUTTON =====
-stopBtn.MouseButton1Click:Connect(function()
-    AUTO_ENABLED = false
-    status.Text = "🔴 OFF"
-end)
+    local _l=Instance.new(_d("Eqbof"),_k)
+    _l.Size=UDim2.new(0,120,0,70)
+    _l.Position=UDim2.new(0,10,0.5,-35)
+    _l.BackgroundColor3=Color3.fromRGB(20,20,20)
+    _l.BackgroundTransparency=0.35
+    _l.BorderSizePixel=0
+    _l.Active=true
+    _l.Draggable=true
+    Instance.new(_d("VJ@psofs"),_l).CornerRadius=UDim.new(0,12)
 
--- ===== AUTO LOOP (ONLY TIMER) =====
-task.spawn(function()
-    local timer = HOP_INTERVAL
+    local _m=Instance.new(_d("WfyvMbcfm"),_l)
+    _m.Size=UDim2.new(1,0,0.5,0)
+    _m.BackgroundTransparency=1
+    _m.Font=Enum.Font.GothamBold
+    _m.TextScaled=true
+    _m.TextColor3=Color3.fromRGB(0,255,120)
+    _m.Text="🟢 ON"
 
-    while true do
-        status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
+    local _n=Instance.new(_d("WfyvAvuupo"),_l)
+    _n.Size=UDim2.new(1,-10,0.35,0)
+    _n.Position=UDim2.new(0,5,0.6,0)
+    _n.Text="STOP"
+    _n.Font=Enum.Font.GothamBold
+    _n.TextScaled=true
+    _n.BackgroundColor3=Color3.fromRGB(170,40,40)
+    _n.TextColor3=Color3.new(1,1,1)
+    _n.BackgroundTransparency=0.15
+    Instance.new(_d("VJ@psofs"),_n).CornerRadius=UDim.new(0,8)
 
-        if AUTO_ENABLED then
-            countdown.Text = "Next hop in: "..timer.."s"
-            timer -= 1
+    -- countdown UI
+    local _o=Instance.new(_d("P`qffmHvj"),game.CoreGui)
+    _o.Name=_d("Kbojv@lvouepxo")
+    _o.ResetOnSpawn=false
 
-            if timer <= 0 then
-                hopServer()
-                timer = HOP_INTERVAL
+    local _p=Instance.new(_d("Eqbof"),_o)
+    _p.AnchorPoint=Vector2.new(0.5,0)
+    _p.Position=UDim2.new(0.5,0,0,8)
+    _p.Size=UDim2.new(0,260,0,36)
+    _p.BackgroundColor3=Color3.fromRGB(20,20,20)
+    _p.BackgroundTransparency=0.35
+    _p.BorderSizePixel=0
+    Instance.new(_d("VJ@psofs"),_p).CornerRadius=UDim.new(0,10)
+
+    local _q=Instance.new(_d("WfyvMbcfm"),_p)
+    _q.Size=UDim2.new(1,0,1,0)
+    _q.BackgroundTransparency=1
+    _q.Font=Enum.Font.GothamBold
+    _q.TextScaled=true
+    _q.TextColor3=Color3.fromRGB(255,255,255)
+    _q.TextStrokeTransparency=0
+    _q.Text="Next hop in: ".._g.."s"
+
+    -- server finder
+    local function _r()
+        local _s="https://games.roblox.com/v1/games/".._e.."/servers/Public?sortOrder=Asc&limit=100"
+        local _t=_c:JSONDecode(game:HttpGet(_s))
+        local _u=nil
+        local _v=math.huge
+
+        for _,x in pairs(_t.data) do
+            if x.playing<_f and x.playing<_v and not _i[x.id] then
+                _v=x.playing
+                _u=x
             end
-        else
-            countdown.Text = "Auto hop paused"
         end
 
-        task.wait(1)
+        if _u then
+            _i[_u.id]=true
+            return _u.id
+        end
     end
-end)
+
+    local function _w()
+        if _j or not _h then return end
+        _j=true
+        while _h do
+            local _x=_r()
+            if _x then
+                pcall(function()
+                    _b:TeleportToPlaceInstance(_e,_x,_d1)
+                end)
+                task.wait(3)
+            else
+                task.wait(2)
+            end
+        end
+        _j=false
+    end
+
+    _n.MouseButton1Click:Connect(function()
+        _h=false
+        _m.Text="🔴 OFF"
+    end)
+
+    task.spawn(function()
+        local _y=_g
+        while true do
+            _m.Text=_h and "🟢 ON" or "🔴 OFF"
+            if _h then
+                _q.Text="Next hop in: ".._y.."s"
+                _y-=_1 or 1
+                if _y<=0 then
+                    _w()
+                    _y=_g
+                end
+            else
+                _q.Text="Auto hop paused"
+            end
+            task.wait(1)
+        end
+    end)
+end
