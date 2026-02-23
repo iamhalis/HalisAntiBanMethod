@@ -13,6 +13,74 @@ local AUTO_ENABLED = true
 local visitedServers = {}
 local hopping = false
 
+-- ===== FPS BOOST + ULTRA SMOOTH =====
+local function boostFPS()
+    pcall(function()
+        local Lighting = game:GetService("Lighting")
+        local Terrain = workspace:FindFirstChildOfClass("Terrain")
+
+        -- tối ưu lighting
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 1e10
+        Lighting.Brightness = 2
+        Lighting.EnvironmentDiffuseScale = 0
+        Lighting.EnvironmentSpecularScale = 0
+
+        -- tối ưu terrain nước
+        if Terrain then
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+        end
+
+        -- quét map giảm lag
+        for _,v in pairs(game:GetDescendants()) do
+            if v:IsA("ParticleEmitter")
+            or v:IsA("Trail")
+            or v:IsA("Smoke")
+            or v:IsA("Fire")
+            or v:IsA("Sparkles") then
+                v.Enabled = false
+
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+
+            elseif v:IsA("BasePart") then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+                v.CastShadow = false
+            end
+        end
+
+        -- fps cap (nếu executor hỗ trợ)
+        if setfpscap then
+            setfpscap(240)
+        end
+    end)
+end
+
+-- chạy khi script load
+task.spawn(boostFPS)
+
+-- ===== ULTRA: chặn hiệu ứng spawn mới =====
+workspace.DescendantAdded:Connect(function(v)
+    if v:IsA("ParticleEmitter")
+    or v:IsA("Trail")
+    or v:IsA("Smoke")
+    or v:IsA("Fire")
+    or v:IsA("Sparkles") then
+        v.Enabled = false
+
+    elseif v:IsA("Decal") or v:IsA("Texture") then
+        v.Transparency = 1
+
+    elseif v:IsA("BasePart") then
+        v.Material = Enum.Material.Plastic
+        v.Reflectance = 0
+        v.CastShadow = false
+    end
+end)
 -- ===== Show notification (3s) =====
 task.spawn(function()
     local creditGui = Instance.new("ScreenGui")
