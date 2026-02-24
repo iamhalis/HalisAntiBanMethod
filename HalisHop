@@ -1,291 +1,138 @@
+--// ================= GLOBAL CONFIG ================= //--
+getgenv().HalisConfig = getgenv().HalisConfig or {
+    HopInterval = 2700,   -- thời gian hop (giây)
+    TargetPlayers = 7,    -- số người tối đa trong server
+    AutoStart = true
+}
+
+--// ================= SETTINGS ================= //--
+local TARGET_PLAYERS = getgenv().HalisConfig.TargetPlayers or 7
+local HOP_INTERVAL = getgenv().HalisConfig.HopInterval or 2700
+local AUTO_ENABLED = getgenv().HalisConfig.AutoStart ~= false
+
+--// ================= SERVICES ================= //--
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
 
--- SETTINGS
-local TARGET_PLAYERS = 7
-local HOP_INTERVAL = 2700
-local AUTO_ENABLED = true
+--// ================= FPS BOOST ULTRA ================= //--
+pcall(function()
 
--- anti repeat
-local visitedServers = {}
-local hopping = false
+    -- 🔻 giảm quality
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 
--- ===== FPS BOOST + ULTRA SMOOTH =====
-local function boostFPS()
-    pcall(function()
-        local Lighting = game:GetService("Lighting")
-        local Terrain = workspace:FindFirstChildOfClass("Terrain")
-
-        -- tối ưu lighting
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 1e10
-        Lighting.Brightness = 2
-        Lighting.EnvironmentDiffuseScale = 0
-        Lighting.EnvironmentSpecularScale = 0
-
-        -- tối ưu terrain nước
-        if Terrain then
-            Terrain.WaterWaveSize = 0
-            Terrain.WaterWaveSpeed = 0
-            Terrain.WaterReflectance = 0
-            Terrain.WaterTransparency = 1
+    -- 🔻 remove particles & effects
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("ParticleEmitter")
+        or v:IsA("Trail")
+        or v:IsA("Smoke")
+        or v:IsA("Fire")
+        or v:IsA("Sparkles") then
+            v.Enabled = false
         end
+    end
 
-        -- quét map giảm lag
-        for _,v in pairs(game:GetDescendants()) do
-            if v:IsA("ParticleEmitter")
-            or v:IsA("Trail")
-            or v:IsA("Smoke")
-            or v:IsA("Fire")
-            or v:IsA("Sparkles") then
-                v.Enabled = false
+    -- 🔻 REMOVE FOG
+    Lighting.FogStart = 0
+    Lighting.FogEnd = 9e9
+    Lighting.FogColor = Color3.new(1,1,1)
 
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
+    -- 🔻 REMOVE GLOBAL SHADOW
+    Lighting.GlobalShadows = false
+    Lighting.Brightness = 1
 
-            elseif v:IsA("BasePart") then
-                v.Material = Enum.Material.Plastic
-                v.Reflectance = 0
-                v.CastShadow = false
-            end
+    -- 🔻 REMOVE SKY
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v:IsA("Sky") then
+            v:Destroy()
         end
+    end
 
-        -- fps cap (nếu executor hỗ trợ)
-        if setfpscap then
-            setfpscap(240)
+    -- 🔻 REMOVE CLOUDS (new roblox clouds)
+    if workspace:FindFirstChildOfClass("Terrain") then
+        local t = workspace:FindFirstChildOfClass("Terrain")
+
+        -- water
+        t.WaterWaveSize = 0
+        t.WaterWaveSpeed = 0
+        t.WaterReflectance = 0
+        t.WaterTransparency = 1
+
+        -- grass
+        pcall(function()
+            sethiddenproperty(t, "Decoration", false)
+        end)
+    end
+
+    -- 🔻 remove Atmosphere
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v:IsA("Atmosphere") then
+            v:Destroy()
         end
-    end)
+    end
+
+    -- 🔻 remove Clouds object
+    for _, v in pairs(workspace:GetChildren()) do
+        if v:IsA("Clouds") then
+            v:Destroy()
+        end
+    end
+
+end)
+
+--// ================= FUNCTION ================= //--
+local function getPlayerCount()
+    return #Players:GetPlayers()
 end
 
--- chạy khi script load
-task.spawn(boostFPS)
+local function serverHop()
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end
 
--- ===== ULTRA: chặn hiệu ứng spawn mới =====
-workspace.DescendantAdded:Connect(function(v)
-    if v:IsA("ParticleEmitter")
-    or v:IsA("Trail")
-    or v:IsA("Smoke")
-    or v:IsA("Fire")
-    or v:IsA("Sparkles") then
-        v.Enabled = false
-
-    elseif v:IsA("Decal") or v:IsA("Texture") then
-        v.Transparency = 1
-
-    elseif v:IsA("BasePart") then
-        v.Material = Enum.Material.Plastic
-        v.Reflectance = 0
-        v.CastShadow = false
-    end
-end)
--- ===== Show notification (3s) =====
+--// ================= MAIN ================= //--
 task.spawn(function()
-    local creditGui = Instance.new("ScreenGui")
-    creditGui.Name = "HalisCredit"
-    creditGui.ResetOnSpawn = false
-    creditGui.Parent = game.CoreGui
+    if not AUTO_ENABLED then return end
 
-    local label = Instance.new("TextLabel")
-    label.Parent = creditGui
-    label.AnchorPoint = Vector2.new(0.5, 0)
-    label.Position = UDim2.new(0.5, 0, 0, 60)
-    label.Size = UDim2.new(0, 260, 0, 40)
-    label.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    label.BackgroundTransparency = 0.25
-    label.BorderSizePixel = 0
-    label.Font = Enum.Font.GothamBold
-    label.TextScaled = true
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.Text = "Script by @iamhalis"
-
-    Instance.new("UICorner", label).CornerRadius = UDim.new(0, 10)
-
-    task.wait(3)
-
-    for i = 0,1,0.1 do
-        label.TextTransparency = i
-        label.BackgroundTransparency = 0.25 + (i * 0.75)
-        task.wait(0.03)
-    end
-
-    creditGui:Destroy()
-end)
-
--- ===== UI MINI (TRANSPARENT) =====
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "HalisMiniHop"
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 120, 0, 70)
-frame.Position = UDim2.new(0, 10, 0.5, -35)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BackgroundTransparency = 0.35
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255,255,255)
-stroke.Transparency = 0.6
-stroke.Thickness = 1
-
--- ===== MINIMIZE =====
-local minimized = false
-
-local miniBtn = Instance.new("TextButton", frame)
-miniBtn.Size = UDim2.new(0,18,0,18)
-miniBtn.Position = UDim2.new(1,-22,0,4)
-miniBtn.Text = "—"
-miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextScaled = true
-miniBtn.BackgroundTransparency = 1
-miniBtn.TextColor3 = Color3.fromRGB(220,220,220)
-
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,0,0.5,0)
-status.BackgroundTransparency = 1
-status.Font = Enum.Font.GothamBold
-status.TextScaled = true
-status.TextColor3 = Color3.fromRGB(0,255,120)
-status.Text = "🟢 ON"
-
-local stopBtn = Instance.new("TextButton", frame)
-stopBtn.Size = UDim2.new(1, -10, 0.35, 0)
-stopBtn.Position = UDim2.new(0,5,0.6,0)
-stopBtn.Text = "STOP"
-stopBtn.Font = Enum.Font.GothamBold
-stopBtn.TextScaled = true
-stopBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
-stopBtn.TextColor3 = Color3.new(1,1,1)
-stopBtn.BackgroundTransparency = 0.15
-Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
-
-miniBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    status.Visible = not minimized
-    stopBtn.Visible = not minimized
-    frame.Size = minimized and UDim2.new(0,120,0,26) or UDim2.new(0,120,0,70)
-    miniBtn.Text = minimized and "+" or "—"
-end)
-
--- ===== COUNTDOWN TOP =====
-local topGui = Instance.new("ScreenGui", game.CoreGui)
-topGui.Name = "HalisCountdown"
-topGui.ResetOnSpawn = false
-
-local countFrame = Instance.new("Frame", topGui)
-countFrame.AnchorPoint = Vector2.new(0.5,0)
-countFrame.Position = UDim2.new(0.5,0,0,8)
-countFrame.Size = UDim2.new(0,260,0,36)
-countFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-countFrame.BackgroundTransparency = 0.35
-countFrame.BorderSizePixel = 0
-Instance.new("UICorner", countFrame).CornerRadius = UDim.new(0,10)
-
-local stroke2 = Instance.new("UIStroke", countFrame)
-stroke2.Color = Color3.fromRGB(255,255,255)
-stroke2.Transparency = 0.7
-stroke2.Thickness = 1
-
-local countdown = Instance.new("TextLabel", countFrame)
-countdown.Size = UDim2.new(1,0,1,0)
-countdown.BackgroundTransparency = 1
-countdown.Font = Enum.Font.GothamBold
-countdown.TextScaled = true
-countdown.TextColor3 = Color3.fromRGB(255,255,255)
-countdown.TextStrokeTransparency = 0
-
--- ===== SERVER FINDER (ANTI FULL) =====
-local function getServer()
-    local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
-    local body = HttpService:JSONDecode(game:HttpGet(url))
-
-    local bestServer, lowest = nil, math.huge
-
-    for _,v in pairs(body.data) do
-        if v.playing < TARGET_PLAYERS
-        and v.playing < v.maxPlayers
-        and not visitedServers[v.id] then
-
-            if v.playing < lowest then
-                lowest = v.playing
-                bestServer = v
-            end
-        end
-    end
-
-    if bestServer then
-        visitedServers[bestServer.id] = true
-        return bestServer.id
-    end
-end
-
--- ===== HOP FUNCTION (ANTI 279 PRO) =====
-local function hopServer()
-    if hopping or not AUTO_ENABLED then return end
-    hopping = true
-
-    local MAX_RETRY = 5
-
-    while AUTO_ENABLED do
-        local serverId = getServer()
-
-        if serverId then
-            for i = 1, MAX_RETRY do
-                if not AUTO_ENABLED then break end
-
-                local success = pcall(function()
-                    TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-                end)
-
-                if success then
-                    task.wait(6)
-                    break
-                else
-                    visitedServers[serverId] = true
-                    task.wait(3)
-                end
-            end
-        else
-            task.wait(4)
-        end
-
-        task.wait(1)
-    end
-
-    hopping = false
-end
-
--- ===== STOP / START =====
-stopBtn.MouseButton1Click:Connect(function()
-    AUTO_ENABLED = not AUTO_ENABLED
-    status.Text = AUTO_ENABLED and "🟢 ON" or "🔴 OFF"
-    stopBtn.Text = AUTO_ENABLED and "STOP" or "START"
-end)
-
--- ===== AUTO LOOP =====
-task.spawn(function()
-    local timer = HOP_INTERVAL
+    local lastHop = tick()
 
     while true do
-        if AUTO_ENABLED then
-            countdown.Text = "Next hop in: "..timer.."s"
-            timer -= 1
+        task.wait(5)
 
-            if timer <= 0 then
-                hopServer()
-                timer = HOP_INTERVAL
-            end
-        else
-            countdown.Text = "Auto hop paused"
+        if getPlayerCount() >= TARGET_PLAYERS then
+            serverHop()
+            break
         end
 
-        task.wait(1)
+        if tick() - lastHop >= HOP_INTERVAL then
+            serverHop()
+            break
+        end
     end
+end)
+
+--// ================= ANTI AFK ================= //--
+pcall(function()
+    for _, v in pairs(getconnections(LocalPlayer.Idled)) do
+        v:Disable()
+    end
+end)
+
+--// ================= CREDIT POPUP ================= //--
+task.spawn(function()
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "HalisCredit"
+
+    local label = Instance.new("TextLabel", gui)
+    label.Size = UDim2.new(0, 300, 0, 50)
+    label.Position = UDim2.new(0.5, -150, 0.1, 0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(0, 255, 127)
+    label.TextStrokeTransparency = 0
+    label.Text = "Script by @iamhalis"
+
+    task.wait(3)
+    gui:Destroy()
 end)
