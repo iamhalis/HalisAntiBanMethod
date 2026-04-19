@@ -46,7 +46,7 @@ task.spawn(function()
     creditGui:Destroy()
 end)
 
--- ===== UI MINI (TRANSPARENT) =====
+-- ===== UI MINI =====
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "HalisMiniHop"
 gui.ResetOnSpawn = false
@@ -106,7 +106,7 @@ miniBtn.MouseButton1Click:Connect(function()
     miniBtn.Text = minimized and "+" or "—"
 end)
 
--- ===== COUNTDOWN TOP =====
+-- ===== COUNTDOWN =====
 local topGui = Instance.new("ScreenGui", game.CoreGui)
 topGui.Name = "HalisCountdown"
 topGui.ResetOnSpawn = false
@@ -133,69 +133,58 @@ countdown.TextScaled = true
 countdown.TextColor3 = Color3.fromRGB(255,255,255)
 countdown.TextStrokeTransparency = 0
 
--- ===== SERVER FINDER (FIX 773) =====
+-- ===== SERVER FINDER (ANTI 773 REAL) =====
 local function getServer()
-    local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
-    local body = HttpService:JSONDecode(game:HttpGet(url))
+    local cursor = ""
 
-    local bestServer, lowest = nil, math.huge
+    for i = 1,3 do
+        local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
+        local body = HttpService:JSONDecode(game:HttpGet(url))
 
-    for _,v in pairs(body.data) do
-        if v.playing < TARGET_PLAYERS
-        and v.playing < v.maxPlayers
-        and not visitedServers[v.id]
-        and v.id ~= game.JobId -- tránh join lại
-        and not v.accessCode then -- tránh server private
+        for _,v in pairs(body.data) do
+            if v.playing < TARGET_PLAYERS
+            and v.playing < v.maxPlayers
+            and not visitedServers[v.id]
+            and v.id ~= game.JobId
+            and not v.accessCode then
 
-            if v.playing < lowest then
-                lowest = v.playing
-                bestServer = v
+                visitedServers[v.id] = true
+                return v.id
             end
         end
-    end
 
-    if bestServer then
-        visitedServers[bestServer.id] = true
-        return bestServer.id
+        if body.nextPageCursor then
+            cursor = body.nextPageCursor
+        else
+            break
+        end
     end
 end
 
--- ===== HOP FUNCTION (FIX LOGIC RETRY) =====
+-- ===== HOP FUNCTION (STABLE) =====
 local function hopServer()
     if hopping or not AUTO_ENABLED then return end
     hopping = true
-
-    local MAX_RETRY = 5
 
     while AUTO_ENABLED do
         local serverId = getServer()
 
         if serverId then
-            local success = false
+            print("Teleporting to:", serverId)
 
-            for i = 1, MAX_RETRY do
-                if not AUTO_ENABLED then break end
+            local success, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+            end)
 
-                task.wait(math.random(1,2)) -- anti spam teleport
-
-                success = pcall(function()
-                    TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-                end)
-
-                if success then
-                    task.wait(6)
-                    break
-                else
-                    visitedServers[serverId] = true
-                    serverId = getServer() -- đổi server mới
-                    task.wait(2)
-                end
+            if not success then
+                warn("Teleport failed:", err)
+                visitedServers[serverId] = true
             end
-        else
-            task.wait(4)
-        end
 
-        task.wait(1)
+            task.wait(3) -- delay ổn định chống 773
+        else
+            task.wait(2)
+        end
     end
 
     hopping = false
